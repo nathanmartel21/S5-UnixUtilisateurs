@@ -1,0 +1,125 @@
+#! /usr/bin/env bash
+#
+# /usr/local/sbin/firewall
+#
+# start/stop the firewall
+#
+# Pour que ce firewall s'active au démarrage de la passerelle
+# Ajoutez les deux dernières lignes ci-dessous dans le fichier :
+# -- /etc/network/interfaces
+#
+# auto enp0s8
+# iface enp0s8 inet static
+#       address 10.0.0.254
+#       netmask 255.255.255.0
+#       pre-up /usr/local/sbin/firewall start
+#       post-down /usr/local/sbin/firewall stop
+#
+# --
+#
+# Release: 1.1 of 2023/03/10
+# 2020, 2023, Joseph Maillardet
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU  General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+set -euo pipefail
+
+error(){
+	printf -- "Error: %s\n" "$1" >&2 
+	exit "$2"
+}
+
+[ -x /sbin/iptables ] || error "Commande « iptables » introuvable." 1
+
+case "${1-}" in
+
+	clean)
+		iptables -F
+		iptables -t nat -F
+		iptables -X
+	;;
+
+	start)
+		printf "Starting firewall: iptables"
+		sh "$0" clean
+
+		# Par défaut, ignore tout les paquets
+		iptables -P INPUT DROP
+
+		# Laisse passé les paquets qui ont déjà établie une poignée de main tcp
+		iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+		# Tout le traffic loopback est accepté (127.0.0.1)
+		iptables -A INPUT -i lo -j ACCEPT
+
+		# Tout le traffic des conteneur est accepté
+		#iptables -A INPUT -i virbr0 -j ACCEPT
+
+		# Ouverture des ports désiré
+		#iptables -A INPUT -p tcp --dport http -j ACCEPT
+		iptables -A INPUT -p tcp --dport domain -j ACCEPT
+		iptables -A INPUT -p tcp --dport ssh -j ACCEPT
+		#iptables -A INPUT -p tcp --dport smtp -j ACCEPT
+		#iptables -A INPUT -p tcp --dport imaps -j ACCEPT
+		#iptables -A INPUT -p tcp --dport https -j ACCEPT
+		#iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+
+		# Redirection vers les conteneurs (virbr0)
+		#iptables -A FORWARD -o virbr0 -p tcp --dport ssh -j ACCEPT
+		#iptables -A FORWARD -o virbr0 -p tcp --dport http -j ACCEPT
+
+		# Redirection du NAT vers les conteneurs
+		#iptables -t nat -A PREROUTING -j DNAT -i enp0s3 -p tcp --dport 8081 --to-destination 192.168.122.101:80
+		#iptables -t nat -A PREROUTING -j DNAT -i enp0s3 -p tcp --dport 8082 --to-destination 192.168.122.102:80
+		#iptables -t nat -A PREROUTING -j DNAT -i enp0s8 -p tcp --dport 8081 --to-destination 192.168.122.101:80
+		#iptables -t nat -A PREROUTING -j DNAT -i enp0s8 -p tcp --dport 8082 --to-destination 192.168.122.102:80
+
+		# Port rejeté
+		iptables -A INPUT -p tcp --dport 113 -j REJECT
+
+		# Gestion sécurisé des pings
+		iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
+		iptables -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT
+		iptables -A INPUT -p icmp --icmp-type source-quench -j ACCEPT
+		iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+		iptables -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
+
+		# Mise en place de la translation d'adresse pour les réseaux derrière la passerelle
+		iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE
+
+		printf ".\n"
+	;;
+
+	stop)
+		printf "Stopping firewall: iptables"
+		sh "$0" clean
+		iptables -P INPUT ACCEPT
+		printf ".\n"
+	;;
+
+	restart|reload|force-reload)
+		printf "Restarting firewall: iptables"
+		sh "$0" stop
+		sh "$0" start
+		printf ".\n"
+	;;
+
+	*)
+		echo "Usage: $(basename "$0") start|stop|restart"
+		exit 1
+	;;
+esac
+
+exit 0
+

@@ -1,0 +1,240 @@
+#! /usr/bin/env bash
+#
+# showc: quickly select color, background and decoration
+#
+# Release 1.3 of 2023/03/10
+# 2017, 2023 Joseph Maillardet
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU  General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+set -euo pipefail
+
+# basic var
+myself=$(basename "$0")
+c0=$(tput sgr0)
+
+# Usage
+usage() {
+	cat <<- EOF
+		Usage: $myself
+		       $myself {fg_color} [ {bg_color} [{mode}] ]
+		       $myself rawdemo | help
+		where:
+		       fg_color = {0..255} | demo
+		       bg_color = {0..255} | demo
+
+		       "demo" draw a full color possibility
+		       anything else like « no » disable fg or bg color
+
+		       mode = addition of 1 (bold), 2 (underline) and 4 (dim) like "rwx" unix right
+
+		       Without argument, showc ask to reset all color mode
+
+		Exemple:
+		       showc demo
+		       showc white demo
+		       showc demo no 1
+		       showc demo demo
+		       printf "\$($myself 15 2) Yes \$($myself 226 no 1) week \$($myself 196) end \$($myself) ! \n"
+	EOF
+}
+
+# Error message
+error() {
+
+	# Reset color
+	printf "%b" "$c0"
+
+	# Display message
+	printf -- "Error(%s): %s\n" "$2" "$1" >&2
+
+	# Get out
+	exit "$2"
+
+}
+
+# control colors arguments
+is_that_shit_a_color() {
+
+	case "$1" in
+
+		# Named color converted to number
+		black)      printf "0" ;;
+		red)        printf "9" ;;
+		green)      printf "10" ;;
+		yellow)     printf "11" ;;
+		blue)       printf "12" ;;
+		magenta)    printf "13" ;;
+		cyan)       printf "14" ;;
+		white)      printf "15" ;;
+
+		# Color number has is ... from 0 to 255
+		[0-9])      printf "%s" "$1" ;;
+		[0-9][0-9]) printf "%s" "$1" ;;
+		[0-9][0-9][0-9]) [ "$1" -ge 0 ] && [ "$1" -lt 256 ] && printf "%s" "$1" ;;
+
+		# Anything else output nothing
+		*) ;;
+
+	esac
+
+}
+
+# control modes arguments
+is_that_shit_a_mode() {
+
+	case "$1" in
+
+		# Mode number has is ... from 0 to 7
+		[0-7])      printf "%s" "$1" ;;
+
+		# Anything else output nothing
+		*) ;;
+
+	esac
+
+}
+
+
+# convert 1 or 2 digits numbers to 3 digits display
+spacing() {
+	case "$1" in
+		[0-9])      printf "00%s" "$1" ;;
+		[0-9][0-9]) printf "0%s" "$1" ;;
+		*)          printf "%s" "$1" ;;
+	esac
+}
+
+# Show a color demo in raw order
+raw_color_demo() {
+	for i in {0..15}; do
+		for j in {0..15}; do
+			COL="$((i*16+j))" ;
+			printf "%b%3d%b %b%3d%b " "$(tput setaf $COL)" "$COL" "$c0" "$(tput setab $COL)" "$COL" "$c0";
+		done
+		printf "\n"
+	done
+}
+
+# Show a organized color demo
+color_demo() {
+
+	# Check args
+	fg=$(display_color "$1" f)
+	bg=$(display_color "$2" b)
+	md=$(display_mode "$3")
+
+	# Clean
+	printf "%b" "$c0"
+
+	# For 16 first color (0-15)
+	for color in {0..15}; do
+		# new line each 8 colors
+		[ $(( color % 8 )) -eq 0 ] && printf "%b\n" "$c0"
+		# drawing
+		[ "$1" == "demo" ] && fg=$(display_color "$color" f)
+		[ "$2" == "demo" ] && bg=$(display_color "$color" b)
+		printf "%s%s%s[%s]" "$fg" "$bg" "$md" "$(spacing $color)"
+	done
+
+	# For 215 next foreground (16-231) and 20 last foreground (232-255)
+	for base in {16..21} {88..93} {160..165} {232..233}; do
+
+		printf "%b\n" "$c0"
+
+		# Show 12 values, jumping 6 by 6 and finally 2 by 2
+		[ $color -lt 231 ] && jump=6 || jump=2
+
+		# Jump
+		for multi in {0..11}; do
+			color=$(( base + ( multi * jump ) ))
+			# drawing
+			[ "$1" == "demo" ] && fg=$(display_color "$color" f)
+			[ "$2" == "demo" ] && bg=$(display_color "$color" b)
+			printf "%s%s%s[%s]" "$fg" "$bg" "$md" "$(spacing $color)"
+		done
+
+	done
+
+	# Clean space
+	printf "%b\n\n" "$c0"
+}
+
+# Print the right color from name or number
+display_color() {
+
+	# Check args
+	if [ $# -lt 2 ]; then error "display_color need 2 args and received less" 1; fi
+	if [ "$2" != "f" ] && [ "$2" != "b" ]; then error "second arg of display_color need to be « f » or « b »" 2; fi
+
+	# Get color
+	color=$(is_that_shit_a_color "$1")
+
+	# If get one, draw color
+	[ -n "$color" ] && printf "%b" "$(tput seta"$2" "$color")" || true
+
+}
+
+# bold(1), underline(2), dim(4)
+display_mode() {
+
+	# Get mode
+	mode=$(is_that_shit_a_mode "$1")
+
+	case $mode in
+		1) printf "%b" "$(tput bold)" ;;
+		2) printf "%b" "$(tput smul)" ;;
+		3) printf "%b" "$(tput bold; tput smul)" ;;
+		4) printf "%b" "$(tput dim)"  ;;
+		5) printf "%b" "$(tput bold; tput dim)" ;;
+		6) printf "%b" "$(tput smul; tput dim)" ;;
+		7) printf "%b" "$(tput bold; tput smul; tput dim)" ;;
+		*) ;; # nothing to do
+	esac
+
+}
+
+# First and anyway : normal printing
+printf "%b" "$c0"
+
+
+# Check scenario
+if [ "${1-}" == "demo" ] || [ "${2-}" == "demo" ]; then
+
+	color_demo "${1-}" "${2-}" "${3-}"
+
+else
+
+	case ${1-} in
+		rawdemo) raw_color_demo ;;
+		h|help|-h|--help) usage ;;
+		*)
+			case $# in
+				# reset already done, but don't want "usage" display (ツ)
+				0) ;;
+				# On args: foreground color
+				1) display_color "$1" f ;;
+				# Two args: like 1 + background color
+				2) display_color "$1" f; display_color "$2" b ;;
+				# Tree args: like 2 + mode : bold, underline and dim
+				3) display_color "$1" f; display_color "$2" b; display_mode "$3" ;;
+				# More args: wtf ?
+				*) usage ;;
+			esac
+		;;
+	esac
+
+fi
+
+exit 0

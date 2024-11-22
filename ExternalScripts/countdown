@@ -1,0 +1,74 @@
+#! /usr/bin/env bash
+#
+# Countdown
+#
+# Release: 1.1 of 2023/03/10
+# 2020, 2023 Joseph Maillardet
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU  General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+set -euo pipefail
+
+display() { printf -- "%s\n" "$1"; }
+
+error() {
+	display "Erreur: $1" >&2
+	[ "${3-}" == true ] && usage
+	[ -n "${2-}" ] && exit "$2"
+}
+
+myself=$(basename "$0")
+
+usage() {
+	cat <<- EOF
+
+		Usage: $myself {date} {explication}
+		       date: une date compatible avec la commande date (man date)
+		       explication: la raison de ce compte à rebour
+
+	EOF
+}
+
+[ -z "${1-}" ] && error "Vous devez indiquer une date en argument" 1 true
+[ -z "${2-}" ] && exp="quelque chose d'important" || exp="$2"
+
+today=$(date +%s)
+
+next=$(date -d "$1" +%s) \
+	|| error "La date fourni n'est pas valable" 1 2
+
+secondes=$(( next - today ))
+
+[ "$secondes" -lt 0 ] && error "La date fourni est antérieur à aujourd'hui" 3
+
+jours=$(( secondes / 60 / 60 / 24 ))
+secondes=$(( secondes - ( jours * 24 * 60 * 60 ) ))
+
+heures=$(( secondes / 60 / 60 ))
+secondes=$(( secondes - ( heures * 60 * 60 ) ))
+
+minutes=$(( secondes / 60 ))
+secondes=$(( secondes - ( minutes * 60 ) ))
+
+if [ "$jours" -gt 1 ]; then
+	txtj="$jours jours et "
+elif [ "$jours" -eq 1 ]; then
+	txtj="$jours jour et "
+else
+	txtj=""
+fi
+
+display "Il reste ${txtj}${heures}h ${minutes}m ${secondes}s avant $exp"
+
+exit 0

@@ -1,0 +1,99 @@
+#! /usr/bin/env bash
+#
+# ls-ext
+#
+# Release: 1.2 of 2023/04/20
+# 2020, 2023 Joseph Maillardet
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU  General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+set -euo pipefail
+
+# messaging
+display() { printf -- "%s\n" "$1"; }
+error() { display "Erreur : $1" >&2; exit "$2"; }
+
+# Vérification de l'environnement
+[ -z "${USER-}" ] && error "Je ne sais pas qui je suis ?! 0_o" 1
+
+if [ -n "${1-}" ]; then
+	[ -d "$1" ] || error "L'argument n'est pas un dossier" 2
+	path="$1"
+else
+	[ -z "${PWD-}" ] && error "Je ne sais pas où je suis ?! 0_o" 3
+	path="$PWD"
+fi
+
+[ -x /usr/bin/find ] || error "Vous devez installer le paquet « findutils » (sudo apt install findutils)" 4
+[ -x /usr/bin/realpath ] || error "Vous devez installer le paquet « coreutils » (sudo apt install coreutils)" 4
+
+path=$(realpath "$path")
+
+display "Recherche de fichier dans: $path"
+file_list=$(find "$path" -type f -printf '%f\n' 2>/dev/null)
+
+# Décompte des lignes passé en argument
+count() {
+	if [ -z "$1" ]
+		then display 0
+		else display "$1" | wc -l
+	fi
+}
+
+nb_file=$(count "$file_list")
+
+if [ $nb_file -gt 0 ]; then
+
+	# Récupération des fichiers ayants une extension
+	# "|| true" évite l'arrêt du script en cas d'absence de point dans la liste des fichiers
+	# (sinon grep sort avec un status d'erreur qui stop le script (option pipefail en début de script)
+	file_with_ext=$(display "$file_list" | grep -F . || true)
+
+	# Récupération des seules extensions
+	ext_list=$(display "$file_with_ext" | rev | cut -d. -f1 | rev)
+	nb_file_with_ext=$(count "$ext_list")
+
+	if [ $nb_file_with_ext -gt 0 ]; then
+		final_result=$(display "$ext_list" | sort | uniq -c | sort -n -r)
+		nb_ext=$(count "$final_result")
+		if [ $nb_ext -gt 1 ]
+			then display "Liste des extensions trouvées :"
+			else display "Unique extension trouvée :"
+		fi
+		display "$final_result"
+	else
+		nb_ext=0
+	fi
+
+	sans_ext=$(( nb_file - nb_file_with_ext ))
+
+	acc_nb_file=''
+	acc_nb_ext=''
+	acc_sans=''
+	[ $nb_file -gt 1 ] && acc_nb_file='s'
+	[ $nb_ext -gt 1 ] && acc_nb_ext='s'
+	[ $sans_ext -gt 1 ] && acc_sans='s'
+
+	cat <<- EOF
+		
+		Résultat: $nb_file fichier$acc_nb_file trouvé$acc_nb_file
+		  - $nb_ext extension$acc_nb_ext au total
+		  - $sans_ext fichier$acc_sans sans extension
+	EOF
+
+else
+	display "Aucun fichier trouvé"
+fi
+
+exit 0

@@ -1,0 +1,80 @@
+#! /usr/bin/env bash
+#
+# manipulation d'arguments
+#
+# Release: 1.1 of 2023/03/10
+# 2020, 2023, Joseph Maillardet
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU  General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+set -euo pipefail
+
+display() { printf -- "%s\n" "$1"; }
+space() { printf "\n"; }
+
+name=$(basename "$0")
+nargs=$#
+
+space
+display "Bonjour, je suis le script: $name"
+display "\$# m'informe qu'il y a $# argument"
+
+# Si des arguments ont été passés au script
+if [ $nargs -gt 0 ]; then
+
+	display '→ Les voici listé avec $@:'
+	for arg in $@; do
+		display "  - $arg"
+	done
+
+	display '→ Voyez la différence si je liste avec "$@":'
+	for arg in "$@"; do
+		display "  - $arg"
+	done
+
+	display '→ Maintenant avec $*:'
+	for arg in $*; do
+		display "  - $arg"
+	done
+
+	display '→ Sans oublier "$*":'
+	for arg in "$*"; do
+		display "  - $arg"
+	done
+
+	display '→ Voyons enfin ce qui arrive après avoir utilisé la commande: shift'
+	display '  (Arguments listés avec "$@"):'
+	shift
+	for arg in "$@"; do
+		display "  - $arg"
+	done
+
+else
+
+	space
+	display "Vous n'avez même pas fourni un argument :'(."
+	display "Bon beeeen, je vais jouer tout seul avec moi-même :p"
+	space
+
+	display "Running> $name un deux trois quatre cinq six"
+	space
+	"$0" un deux trois quatre cinq six
+
+	display "Running> $name \"un deux\" trois \"quatre cinq six\""
+	space
+	"$0" "un deux" trois "quatre cinq six"
+
+fi
+
+exit 0
