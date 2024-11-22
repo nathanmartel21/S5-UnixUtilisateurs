@@ -9,6 +9,10 @@
     echo "Le script prend en compte qu'un seul paramètre".
     exit 1
   fi
-- <blank>
+- Timestamp :
+  ```
+  date -d@0
+  ```
+  Temps depuis le 1er janv 1970 à 1h du matin (car UTC)
 - 
   
