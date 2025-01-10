@@ -14,5 +14,7 @@
   date -d@0
   ```
   Temps depuis le 1er janv 1970 à 1h du matin (car UTC)
-- 
-  
+- Toujours mettre ```set -euo pipefail``` juste après le shibang pour sécurité de l'exécution du script
+- Shibang : ```#! /usr/bin/env bash```
+- ```${var-}``` --> essaye d'accéder à la variable var sinon intialise la
+- ```${page-accueil}``` --> essaye d'accéder à la variable page sinon initialise page=accueil
