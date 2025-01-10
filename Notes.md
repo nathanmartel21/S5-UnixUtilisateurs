@@ -18,3 +18,7 @@
 - Shibang : ```#! /usr/bin/env bash```
 - ```${var-}``` --> essaye d'accéder à la variable var sinon intialise la
 - ```${page-accueil}``` --> essaye d'accéder à la variable page sinon initialise page=accueil
+- ```command || true``` --> j'autorise que la commande command crash si jamais
+- ```$0``` --> contient la chaine exacte du script (pour permettre de l'appeler par exemple)
+- ```[``` --> pour tester
+  - ```-x``` --> exécute
