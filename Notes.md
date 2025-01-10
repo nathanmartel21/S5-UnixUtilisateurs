@@ -12,6 +12,7 @@
 - Timestamp :
   ```
   date -d@0
+  date +%s
   ```
   Temps depuis le 1er janv 1970 à 1h du matin (car UTC)
 - Toujours mettre ```set -euo pipefail``` juste après le shibang pour sécurité de l'exécution du script
@@ -22,3 +23,7 @@
 - ```$0``` --> contient la chaine exacte du script (pour permettre de l'appeler par exemple)
 - ```[``` --> pour tester
   - ```-x``` --> exécute
+- PATH --> liste des dossiers contenant des fichiers exécutable sur le système
+- mktemp -d --> génère un fichier temporaire sécurisé (sans qu'il soit écrasé ou non)
+- $$ --> numéro du PID qui exécute le script
+ - echo $bash -c 'echo "script-$(date +%s)-$$'
