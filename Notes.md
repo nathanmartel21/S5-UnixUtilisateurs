@@ -40,7 +40,7 @@
 - < (...) subshell qui devient un fichier
 - Revoir LXC car il y aura au controle
 - Voir ce que c'est que &> ...
-
+- Jeter un oeil sur ansible section 6
 
 
 
