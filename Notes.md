@@ -27,3 +27,4 @@
 - mktemp -d --> génère un fichier temporaire sécurisé (sans qu'il soit écrasé ou non)
 - $$ --> numéro du PID qui exécute le script
  - echo $bash -c 'echo "script-$(date +%s)-$$'
+- Pour supprimer par exemple le fichier `-f`, on fait un rm -- -rf. Le -- permet de faire en sorte de dire que ce ne sont plus des arguments positionnels
