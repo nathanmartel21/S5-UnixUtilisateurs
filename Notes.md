@@ -28,3 +28,19 @@
 - $$ --> numéro du PID qui exécute le script
  - echo $bash -c 'echo "script-$(date +%s)-$$'
 - Pour supprimer par exemple le fichier `-f`, on fait un rm -- -rf. Le -- permet de faire en sorte de dire que ce ne sont plus des arguments positionnels
+- Revoir le getopt
+- Revoir syntaxe case et le --) shift break à la fin et le *), le ;;
+- Utiliser [ -x ... ] et [ -z ... ]
+- IFS :
+  - Quand on met IFS='' --> on met IFS à zéro, il n'y a plus de séparateur d'argument
+
+- $(...) --> subshell
+- ( ...
+    ... ) > /var/log --> redirige tout ce qui va sortir du bout de code dans le /var/log (subshell qui devient une variable)
+- < (...) subshell qui devient un fichier
+- Revoir LXC car il y aura au controle
+- Voir ce que c'est que &> ...
+
+
+
+
